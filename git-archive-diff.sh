@@ -79,15 +79,14 @@ function print_result_summary() {
 
 # 出力結果（アーカイブされたファイル）を表示する関数
 # $1 : アーカイブのファイル名
-# $2 : 表示から除外するルートディレクトリの名称
 function print_result_files() {
     echo
     echo " Archived Files"
     echo "----------------"
 
     # アーカイブファイルを読み込んでファイルパスを表示する
-    # ルートディレクトリは表示から除外する
-    zipinfo -1 "$1" -x "$2/"
+    # ディレクトリは表示から除外する
+    zipinfo -1 "$1" -x "*/"
 }
 
 
@@ -150,7 +149,7 @@ function do_git_archive() {
 
     # 結果を表示する
     print_result_summary "$from_commit" "$to_commit" "$archive_path"
-    print_result_files "$archive_path" "$repo_name"
+    print_result_files "$archive_path"
 }
 
 
