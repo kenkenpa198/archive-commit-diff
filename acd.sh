@@ -125,6 +125,12 @@ function do_git_archive() {
         print_cmd_error_exit "git diff"
     fi
 
+    # 差分が存在しなかった場合は正常終了
+    if [[ "${#diff_files[@]}" == 0 ]]; then
+        echo "差分が存在しませんでした。"
+        exit 0
+    fi
+
     # ファイル名を定義
     local repo_name datetime archive_path
     repo_name="$(basename "$PWD")"
