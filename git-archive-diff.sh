@@ -69,9 +69,9 @@ function print_result_summary() {
     echo
     echo " Summary"
     echo "---------"
-    echo "    from commit : ${1}"
-    echo "    to commit   : ${2}"
-    echo "    exported to : ./${3}"
+    echo "from commit : ${1}"
+    echo "to commit   : ${2}"
+    echo "Archived to : ./${3}"
 }
 
 # 出力結果（アーカイブされたファイル）を表示する関数
