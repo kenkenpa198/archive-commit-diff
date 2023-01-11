@@ -1,74 +1,121 @@
 <!-- omit in toc -->
-# git-archive-diff
+# archive-commit-diff
 
-Git リポジトリ上の指定コミット間の差分ファイルを ZIP 形式で出力するシェルスクリプト。
+Git リポジトリ上の指定コミット間の差分ファイルを ZIP 形式で出力するシェルスクリプトです。
+
+<!-- omit in toc -->
+## 目次
+
+- [1. コマンド一覧](#1-コマンド一覧)
+- [2. 使い方](#2-使い方)
+    - [2.1. 環境構築](#21-環境構築)
+    - [2.2. 実行](#22-実行)
+    - [2.3. エイリアスで実行する場合](#23-エイリアスで実行する場合)
+- [3. 補足](#3-補足)
+- [4. 参考文献](#4-参考文献)
+
+## 1. コマンド一覧
 
 ```shell
- Usage
--------
-    $ ./git-archive-diff.sh <from_commit> <to_commit>
-    $ ./git-archive-diff.sh <from_commit>
+$ acd.sh <from_commit> <to_commit> # <from_commit> と <to_commit> の差分を出力する
+$ acd.sh <from_commit>             # <from_commit> と HEAD の差分を出力する
+$ acd.sh -h                        # ヘルプを表示する
 ```
 
-## 1. 使い方
+## 2. 使い方
+
+### 2.1. 環境構築
 
 ```shell
 # ダウンロードしたスクリプトファイルへ実行権限を付与
-$ chmod +x /your/bin/dir/git-archive-diff.sh
+$ chmod +x /your/bin/dir/acd.sh
 
 # PATH を通す
 $ echo 'export PATH=/your/bin/dir:$PATH' >> ~/.bashrc
 $ source ~/.bashrc
+```
 
-# Git リポジトリへ移動
-$ cd /your/git/dir
+### 2.2. 実行
+
+```shell
+# Git リポジトリのルートへ移動
+$ cd /your/git/repo
 
 # スクリプトを実行
-$ git-archive-diff.sh main feature/your-branch
+$ acd.sh main your-branch
 アーカイブを出力しました。
 
  Summary
 ---------
-    from commit : master
-    to commit   : feature/your-branch
-    exported to : ./git-archive-diff-20230111_224000.zip
+from commit : main
+to commit   : HEAD
+Archived to : ./repo-20230112_230339.zip
 
- Files
--------
-    foo/bar/aaa.txt
-    foo/bar/bbb.txt
-    foo/bar/ccc.txt
+ Archived files
+----------------
+repo/foo.txt
+repo/bar.txt
+repo/child/baz.txt
 ```
 
-エイリアスで実行する場合
+### 2.3. エイリアスで実行する場合
 
 ```shell
 # .bashrc へエイリアスを書き込み
-$ echo 'alias gad="git-archive-diff.sh"' >> ~/.bashrc
+$ echo 'alias acd="acd.sh"' >> ~/.bashrc
 $ source ~/.bashrc
 
 # スクリプトを実行
-$ gad main feature/your-branch
+$ acd main your-branch
 ```
 
-## 2. 補足
+## 3. 補足
 
-- ファイル名にスペースを含むファイルが存在していても出力が可能です。
+- ファイル名にスペースを含む差分ファイルが存在していても出力が可能です。
 - 以下の場合はエラーメッセージを表示して終了します。
-    - カレントディレクトリが Git リポジトリでない場合
-    - 指定したコミットが存在しない等で差分出力に失敗した場合
-- `<to_commit>` を省略した場合は `<from_commit>` と最新のコミット（ `HEAD` ）の差分を出力します。
+    - 引数の個数が [1. コマンド](#1-コマンド) に該当しない場合
+    - カレントディレクトリが Git リポジトリのルートディレクトリ上でない場合
+    - 差分出力に失敗した場合（指定したコミットが Git の履歴に存在しない場合など）
+- `<to_commit>` を省略した場合は `<from_commit>` と `HEAD`（最新のコミット）の差分を出力します。
+
+    ```shell
+    $ acd.sh main
+    アーカイブを出力しました。
+
+     Summary
+    ---------
+    from commit : main
+    to commit   : HEAD
+
+     Archived files
+    ----------------
+    repo/foo.txt
+    ...
+    ```
+
 - `-h` オプションでヘルプを表示します。
 
     ```shell
-    $ ./git-archive-diff.sh -h
+    $ acd.sh -h
+    -----------------------------------------------------------------
+                        archive-commit-diff
+    -----------------------------------------------------------------
+    指定した Git コミット間の差分ファイルを ZIP 形式で出力します。
+
+     Usage
+    -------
+        $ acd.sh <from_commit> <to_commit>
+        $ acd.sh <from_commit>
+    
+    ...
     ```
 
-## 3. 参考文献
+## 4. 参考文献
 
 - [シェルスクリプトを高級言語のような書き味に近づける Tips 集](https://sousaku-memo.net/php-system/1817)
 - [使いやすいシェルスクリプトを書く | Taichi Nakashima](https://deeeet.com/writing/2014/05/18/shell-template/)
+- [【 zipinfo 】コマンド――ZIPファイル内の情報を表示する：Linux基本コマンドTips（241） - ＠IT](https://atmarkit.itmedia.co.jp/ait/articles/1809/14/news041.html)
 - [Gitで差分ファイルを抽出+zipファイル化する方法 | 株式会社グランフェアズ](https://www.granfairs.com/blog/staff/git-archivediff)
-- [Gitレポジトリの中にいるか確認する方法 | 晴耕雨読](https://tex2e.github.io/blog/git/check-if-inside-git-repo)
-- [コマンドの標準エラー出力を変数に代入 - ハックノート](https://hacknote.jp/archives/20651/)
 - [fish shellでコミット差分アーカイブのコマンドファイルを作成する | TECH BOX](https://tech.arc-one.jp/git-archive-on-fish)
+- [GIT で差分ファイルを抽出する時にパスにスペースがあるとエラーになる - Espresso & Onigiri](https://va2577.github.io/post/61/)
+- [git rev-parseを使いこなす - Qiita](https://qiita.com/karupanerura/items/721962bb7da3e34187e1)
