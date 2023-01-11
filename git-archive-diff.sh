@@ -112,58 +112,17 @@ function do_git_archive() {
     from_commit=$1           # 変更前のコミット
     to_commit="${2:-"HEAD"}" # 変更後のコミット。$2 が未定義の場合は "HEAD" を代入
 
-    # NOTE:
-    # 「git diff コマンドの実行確認」～「git archive コマンドを実行」の処理は以下のワンライナーで書くともっと短く書ける。
-    # ----------------------------------------------------------------------------------------------
-    # git archive revision `git diff --name-only origin/master revision` -o archive.zip
-    # ----------------------------------------------------------------------------------------------
-    #
-    # ただしこの記述で実行した場合、以下の問題が発生する。
-    # - git diff の実行に失敗した場合でも git archive コマンドが実行されファイルが生成されてしまう。
-    # - ファイル名にスペースが含まれたファイルが差分に存在した場合、変数展開時別ファイルとして扱われてコマンドの実行に失敗する。
-    #
-    # 以上の理由により、このスクリプトでは
-    # 1. git diff の実行確認 → 2. git diff の標準出力を配列として保存 → 3. git archive で配列を展開して実行
-    # という処理工程にしている（とはいえもっと簡潔に書きたい……）。
-
-    # git diff コマンドの実行確認
-    if ! git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR > /dev/null; then
-        # コマンド実行でエラーが発生した場合はコマンドエラーを出力して異常終了
+    # git diff コマンドの標準出力を配列として保存
+    if ! diff_files=( $(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR | sed -e "s/ /\\\\ /g") ); then
         print_cmd_error_exit "git diff"
     fi
-
-    # git diff コマンドの標準出力を配列として保存
-    local diff_files
-    mapfile -t diff_files < <(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR)
-
-    # NOTE:
-    # 以下だと 1. git diff の実行確認 → 2. git diff の標準出力を配列として保存 の処理をまとめて書けるが、
-    # この記述方法だと前述のファイル名にスペースが含まれていた場合の問題が発生してしまう。
-    # ----------------------------------------------------------------------------------------------
-    # if ! diff_files=( $(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR) ); then
-    #     print_cmd_error_exit "git diff"
-    # fi
-    # ----------------------------------------------------------------------------------------------
-    #
-    # mapfile コマンドを使用した以下の構文だとファイル名を正しく保持できる。
-    # ----------------------------------------------------------------------------------------------
-    # if ! mapfile -t diff_files < <(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR); then
-    #     print_cmd_error_exit "git diff"
-    # fi
-    # ----------------------------------------------------------------------------------------------
-    #
-    # しかし後者の構文の場合、存在しないコミットが渡ってきて git diff がエラー終了しても if 文では真にならない。
-    # if 文で行いたい git diff コマンドの異常終了ステータスが mapfile の正常終了ステータスで上書きされてしまうため。
-    #
-    # 以上の理由で 1. git diff の実行確認 → 2. git diff という2段階に分けた処理順序にしている。
-    # こちらも改善したい。
 
     # ファイル名を定義
     local export_path
     export_path="$(basename "$PWD")-$(date '+%Y%m%d_%H%M%S').zip" # ディレクトリ名-yyyymmdd_hhmmss.zip
 
     # git archive コマンドを実行
-    if ! git archive --format=zip --prefix=root/ "$to_commit" "${diff_files[@]}" -o "$export_path"; then
+    if ! echo "${diff_files[@]}" | xargs git archive --format=zip --prefix=root/ "$to_commit" -o "$export_path"; then
         # コマンド実行でエラーが発生した場合はコマンドエラーを出力して異常終了
         print_cmd_error_exit "git archive"
     fi
