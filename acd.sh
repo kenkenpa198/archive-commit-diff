@@ -14,29 +14,30 @@ print_help_exit() {
         # ヒアドキュメントを出力
         cat \
 << msg_help
------------------------------------------------------------------
-                     git-archive-diff v2.0.0
------------------------------------------------------------------
-Git コミット間の差分ファイルを ZIP 形式で出力します。
+-------------------------------------------------------------------
+                        archive-commit-diff
+-------------------------------------------------------------------
+指定した Git コミット間の差分ファイルを ZIP 形式で出力します。
 
  Usage
 -------
-    $ bash ./git-archive-diff.sh <from_commit> <to_commit>
-    $ bash ./git-archive-diff.sh <from_commit>
+    $ acd.sh <from_commit> <to_commit>
+    $ acd.sh <from_commit>
+    $ acd.sh -h
 
  Example
 ---------
 コミットの識別子には コミット ID, ブランチ名, HEAD, タグ が使用できます。
-    $ bash ./git-archive-diff.sh 322d4b4 a11729d
-    $ bash ./git-archive-diff.sh main feature/your-branch
-    $ bash ./git-archive-diff.sh HEAD~~ HEAD
-    $ bash ./git-archive-diff.sh v1.0.0 v1.1.0
+    $ acd.sh 322d4b4 a11729d
+    $ acd.sh main your-branch
+    $ acd.sh HEAD~~ HEAD
+    $ acd.sh v1.0.0 v1.1.0
 
-<to_commit> を省略した場合は <from_commit> と最新のコミット (HEAD) の差分を出力します。
-    $ bash ./git-archive-diff.sh main
+<to_commit> は省略可能です。この場合は <from_commit> と HEAD の差分を出力します。
+    $ acd.sh main
 
 -h オプションでヘルプを表示します。
-    $ bash ./git-archive-diff.sh -h
+    $ acd.sh -h
 msg_help
 
         # 正常ステータスで終了
