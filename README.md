@@ -108,7 +108,7 @@ $ acd main your-branch
     -------
         $ acd.sh <from_commit> <to_commit>
         $ acd.sh <from_commit>
-    
+
     ...
     ```
 
