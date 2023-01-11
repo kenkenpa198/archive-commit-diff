@@ -74,14 +74,17 @@ function print_result_summary() {
     echo "    exported to : ./${3}"
 }
 
-# 出力結果（差分ファイル）を表示する関数
+# 出力結果（アーカイブされたファイル）を表示する関数
+# $1 : アーカイブのファイル名
+# $2 : 表示から除外するルートディレクトリの名称
 function print_result_files() {
     echo
-    echo " Files"
-    echo "-------"
-    for file in "$@"; do
-        echo "    $file"
-    done
+    echo " Archived Files"
+    echo "----------------"
+
+    # アーカイブファイルを読み込んでファイルパスを表示する
+    # ルートディレクトリは表示から除外する
+    zipinfo -1 "$1" -x "$2/"
 }
 
 
@@ -118,18 +121,20 @@ function do_git_archive() {
     fi
 
     # ファイル名を定義
-    local export_path
-    export_path="$(basename "$PWD")-$(date '+%Y%m%d_%H%M%S').zip" # ディレクトリ名-yyyymmdd_hhmmss.zip
+    local repo_name datetime archive_path
+    repo_name="$(basename "$PWD")"
+    datetime="$(date '+%Y%m%d_%H%M%S')"
+    archive_path="$repo_name-$datetime.zip"
 
     # git archive コマンドを実行
-    if ! echo "${diff_files[@]}" | xargs git archive --format=zip --prefix=root/ "$to_commit" -o "$export_path"; then
+    if ! echo "${diff_files[@]}" | xargs git archive --format=zip --prefix="$repo_name"/ "$to_commit" -o "$archive_path"; then
         # コマンド実行でエラーが発生した場合はコマンドエラーを出力して異常終了
         print_cmd_error_exit "git archive"
     fi
 
     # 結果を表示する
-    print_result_summary "$from_commit" "$to_commit" "$export_path"
-    print_result_files "${diff_files[@]}"
+    print_result_summary "$from_commit" "$to_commit" "$archive_path"
+    print_result_files "$archive_path" "$repo_name"
 }
 
 
