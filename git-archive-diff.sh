@@ -81,7 +81,7 @@ function print_result_summary() {
 # $1 : アーカイブのファイル名
 function print_result_files() {
     echo
-    echo " Archived Files"
+    echo " Archived files"
     echo "----------------"
 
     # アーカイブファイルを読み込んでファイルパスを表示する
