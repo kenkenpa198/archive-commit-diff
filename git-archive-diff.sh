@@ -64,6 +64,9 @@ function print_cmd_error_exit() {
 }
 
 # 出力結果（概要）を表示する関数
+# $1 : 変更前のコミット
+# $2 : 変更後のコミット
+# $3 : アーカイブのファイル名
 function print_result_summary() {
     echo "アーカイブを出力しました。"
     echo
@@ -108,14 +111,15 @@ return
 
 # git archive コマンドを実行する関数
 # $1 : 変更前のコミット識別子
-# $2 : 変更後のコミット識別子（省略した場合は "HEAD" を代入）
+# $2 : 変更後のコミット識別子（省略可能）
 function do_git_archive() {
     # コミット識別子をローカル変数へ代入
     local from_commit to_commit
     from_commit=$1           # 変更前のコミット
     to_commit="${2:-"HEAD"}" # 変更後のコミット。$2 が未定義の場合は "HEAD" を代入
 
-    # git diff コマンドの標準出力を配列として保存
+    # git diff コマンドの標準出力を配列化
+    # スペースをファイル名に含む場合は \ でエスケープする
     if ! diff_files=( $(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR | sed -e "s/ /\\\\ /g") ); then
         print_cmd_error_exit "git diff"
     fi
@@ -131,6 +135,17 @@ function do_git_archive() {
         # コマンド実行でエラーが発生した場合はコマンドエラーを出力して異常終了
         print_cmd_error_exit "git archive"
     fi
+
+    # NOTE:
+    # git diff ～ git archive の処理は https://va2577.github.io/post/61/ の「結果」に記載されているコマンドを参考に作成。
+    # スペースをファイル名に含むファイルが差分に存在しても、1 つのファイルとして正しく処理を行うことができる。
+    #
+    # さらにこのコマンドを以下の 2 段階の処理に分割し、エラーハンドリングを行っている。
+    # 1. git diff の実行・配列化
+    # 2. git archive の実行
+    #
+    # ワンライナーのままでは、Git の歴史に存在しないコミットを渡された場合に git diff の処理に失敗するものの
+    # 続けて git archive が実行されてしまい、空の ZIP ファイルが生成されてしまうため。
 
     # 結果を表示する
     print_result_summary "$from_commit" "$to_commit" "$archive_path"
