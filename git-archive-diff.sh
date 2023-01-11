@@ -101,10 +101,11 @@ function validate_parameters_count() {
     fi
 }
 
-# カレントディレクトリが Git リポジトリ内か検証する関数
-function validate_inside_repo() {
-    if ! git rev-parse --is-inside-work-tree &>/dev/null; then
-        print_error_exit "このスクリプトは Git リポジトリ上で実行してください。"
+# カレントディレクトリが Git リポジトリのルートか検証する関数
+function validate_inside_repo_root() {
+    # .git がカレントディレクトリに存在するか否かで判定する
+    if ! git rev-parse --resolve-git-dir ./.git &>/dev/null; then
+        print_error_exit "このスクリプトは Git リポジトリのルートディレクトリ上で実行してください。"
     fi
 return
 }
@@ -160,8 +161,8 @@ function main() {
     # ヘルプの表示判定処理
     print_help_exit "$@"
 
-    # カレントディレクトリが Git リポジトリ内か検証
-    validate_inside_repo
+    # カレントディレクトリが Git リポジトリのルートか検証
+    validate_inside_repo_root
 
     # 引数の個数を検証
     validate_parameters_count "$@"
