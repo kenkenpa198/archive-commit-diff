@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Git リポジトリ上の指定コミット間の差分ファイルを ZIP 形式で出力するシェルスクリプト
+# 指定した Git コミット間の差分ファイルを ZIP 形式で出力するシェルスクリプトコマンド
 
 ###################################
 # 関数定義 : メッセージを表示
@@ -14,9 +14,9 @@ print_help_exit() {
         # ヒアドキュメントを出力
         cat \
 << msg_help
--------------------------------------------------------------------
-                        archive-commit-diff
--------------------------------------------------------------------
+------------------------------------------------------------------
+                    archive-commit-diff v0.1.0
+------------------------------------------------------------------
 指定した Git コミット間の差分ファイルを ZIP 形式で出力します。
 
  Usage
@@ -79,15 +79,19 @@ function print_result_summary() {
 }
 
 # 出力結果（アーカイブされたファイル）を表示する関数
-# $1 : アーカイブのファイル名
+# $@ : 表示するファイルパス（複数）
 function print_result_files() {
     echo
     echo " Archived files"
     echo "----------------"
 
-    # アーカイブファイルを読み込んでファイルパスを表示する
-    # ディレクトリは表示から除外する
-    zipinfo -1 "$1" -x "*/"
+    for file in "$@" ; do
+        echo "./$file"
+    done
+
+    # NOTE:
+    # スペースを含むファイルが存在する場合、区切り文字として扱われるため分割して出力されてしまう。
+    # 対処するには複雑な構文となるようなのでいったん対応無し。
 }
 
 
@@ -120,14 +124,15 @@ function do_git_archive() {
     to_commit="${2:-"HEAD"}" # 変更後のコミット。$2 が未定義の場合は "HEAD" を代入
 
     # git diff コマンドの標準出力を配列化
-    # スペースをファイル名に含む場合は \ でエスケープする
+    # パスに含まれるスペースを \ でエスケープしておく
     if ! diff_files=( $(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR | sed -e "s/ /\\\\ /g") ); then
         print_cmd_error_exit "git diff"
     fi
 
     # 差分が存在しなかった場合は正常終了
+    # ここで処理を止めなかった場合 git archive コマンドが実行され空のファイルが生成されてしまう
     if [[ "${#diff_files[@]}" == 0 ]]; then
-        echo "差分が存在しませんでした。"
+        echo "指定されたコミット間に差分が存在しませんでした。"
         exit 0
     fi
 
@@ -145,7 +150,7 @@ function do_git_archive() {
 
     # NOTE:
     # git diff ～ git archive の処理は https://va2577.github.io/post/61/ の「結果」に記載されているコマンドを参考に作成。
-    # スペースをファイル名に含むファイルが差分に存在しても、1 つのファイルとして正しく処理を行うことができる。
+    # スペースをパスに含むファイルが差分に存在しても、1 つのファイルとして扱い正しく処理を行うことができる。
     #
     # さらにこのコマンドを以下の 2 段階の処理に分割し、エラーハンドリングを行っている。
     # 1. git diff の実行・配列化
@@ -156,7 +161,7 @@ function do_git_archive() {
 
     # 結果を表示する
     print_result_summary "$from_commit" "$to_commit" "$archive_path"
-    print_result_files "$archive_path"
+    print_result_files "${diff_files[@]}"
 }
 
 
