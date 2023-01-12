@@ -126,6 +126,7 @@ function do_git_archive() {
     # git diff コマンドの標準出力を配列化
     # パスに含まれるスペースを \ でエスケープしておく
     if ! diff_files=( $(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR | sed -e "s/ /\\\\ /g") ); then
+        # エラーが発生した場合はコマンドエラーを出力して異常終了
         print_cmd_error_exit "git diff"
     fi
 
@@ -144,7 +145,7 @@ function do_git_archive() {
 
     # git archive コマンドを実行
     if ! echo "${diff_files[@]}" | xargs git archive --format=zip --prefix="$repo_name"/ "$to_commit" -o "$archive_path"; then
-        # コマンド実行でエラーが発生した場合はコマンドエラーを出力して異常終了
+        # エラーが発生した場合はコマンドエラーを出力して異常終了
         print_cmd_error_exit "git archive"
     fi
 
