@@ -116,7 +116,7 @@ return
 # $1 : 変更前のコミット識別子
 # $2 : 変更後のコミット識別子（省略可能）
 function do_git_commands() {
-    # コミット識別子をローカル変数へ代入
+    # 引数をコミット識別子として命名
     local from_commit to_commit
     from_commit=$1
     to_commit="${2:-"HEAD"}" # $2 が未定義の場合は "HEAD" を代入
