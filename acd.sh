@@ -55,7 +55,7 @@ function print_error_exit() {
 
 # コマンド実行エラーを出力して異常終了する関数
 # $1 : エラーが発生したコマンド
-function print_cmd_error_exit() {
+function print_command_error_exit() {
     local command=$1
     echo ""
     echo "[ERROR] ${command} コマンドの実行中にエラーが発生しました。"
@@ -79,7 +79,7 @@ function print_result_summary() {
 }
 
 # 出力結果（アーカイブされたファイル）を表示する関数
-# $@ : 表示するファイルパス（複数）
+# $@ : 表示するファイルパスの配列
 function print_result_files() {
     echo
     echo " Archived files"
@@ -114,10 +114,10 @@ function validate_inside_repo_root() {
 return
 }
 
-# git archive コマンドを実行する関数
+# git コマンドを実行する関数
 # $1 : 変更前のコミット識別子
 # $2 : 変更後のコミット識別子（省略可能）
-function do_git_archive() {
+function do_git_commands() {
     # コミット識別子をローカル変数へ代入
     local from_commit to_commit
     from_commit=$1           # 変更前のコミット
@@ -127,7 +127,7 @@ function do_git_archive() {
     # パスに含まれるスペースを \ でエスケープしておく
     if ! diff_files=( $(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR | sed -e "s/ /\\\\ /g") ); then
         # エラーが発生した場合はコマンドエラーを出力して異常終了
-        print_cmd_error_exit "git diff"
+        print_command_error_exit "git diff"
     fi
 
     # 差分が存在しなかった場合は正常終了
@@ -146,7 +146,7 @@ function do_git_archive() {
     # git archive コマンドを実行
     if ! echo "${diff_files[@]}" | xargs git archive --format=zip --prefix="$repo_name"/ "$to_commit" -o "$archive_path"; then
         # エラーが発生した場合はコマンドエラーを出力して異常終了
-        print_cmd_error_exit "git archive"
+        print_command_error_exit "git archive"
     fi
 
     # NOTE:
@@ -179,8 +179,8 @@ function main() {
     # 引数の個数を検証
     validate_parameters_count "$@"
 
-    # git archive コマンドを実行
-    do_git_archive "$@"
+    # git コマンドを実行
+    do_git_commands "$@"
 }
 
 # メイン処理を実行
