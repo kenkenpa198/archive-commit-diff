@@ -139,7 +139,7 @@ function do_git_archive() {
     # ファイル名を定義
     local repo_name datetime archive_path
     repo_name="$(basename "$PWD")"
-    datetime="$(date '+%Y%m%d_%H%M%S')"
+    datetime="$(date '+%Y%m%d-%H%M%S')"
     archive_path="$repo_name-$datetime.zip"
 
     # git archive コマンドを実行
