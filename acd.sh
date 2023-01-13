@@ -16,15 +16,16 @@ set -euo pipefail
 # グローバル定数を定義
 ###################################
 # 渡された引数を命名
-FROM_COMMIT="${1:-""}"   # $1 が未定義（引数なし）の場合は空文字を代入
-TO_COMMIT="${2:-"HEAD"}" # $2 が未定義の場合は "HEAD" を代入
+SCRIPT_NAME="$(basename "$0")" # 実行されたこのスクリプトのファイル名
+FROM_COMMIT="${1:-""}"         # $1 が未定義（引数なし）の場合は空文字を代入
+TO_COMMIT="${2:-"HEAD"}"       # $2 が未定義の場合は "HEAD" を代入
 
 # リポジトリ名と出力ファイルパスを定義
 REPOSITORY_NAME="$(basename "$PWD")"
 ARCHIVE_PATH="./$REPOSITORY_NAME-$(date '+%Y%m%d-%H%M%S').zip"
 
 # 書き込みを禁止して定数化
-readonly FROM_COMMIT TO_COMMIT REPOSITORY_NAME ARCHIVE_PATH
+readonly SCRIPT_NAME FROM_COMMIT TO_COMMIT REPOSITORY_NAME ARCHIVE_PATH
 
 
 ###################################
@@ -44,25 +45,25 @@ print_help_to_exit() {
 
  Usage
 -------
-    $ acd.sh <from_commit> <to_commit>
-    $ acd.sh <from_commit>
-    $ acd.sh -h
+    $ $SCRIPT_NAME <from_commit> <to_commit>
+    $ $SCRIPT_NAME <from_commit>
+    $ $SCRIPT_NAME -h
 
  Example
 ---------
 コミット識別子を <from_commit> <to_commit> へ指定して実行します。
-    $ acd.sh 322d4b4 a11729d
+    $ $SCRIPT_NAME 322d4b4 a11729d
 
 コミット識別子には ブランチ名 HEAD タグ も使用できます。
-    $ acd.sh main your-branch
-    $ acd.sh HEAD~~ HEAD
-    $ acd.sh v1.0.0 v1.1.0
+    $ $SCRIPT_NAME main your-branch
+    $ $SCRIPT_NAME HEAD~~ HEAD
+    $ $SCRIPT_NAME v1.0.0 v1.1.0
 
 <to_commit> を省略した場合は <from_commit> と HEAD の差分を出力します。
-    $ acd.sh main
+    $ $SCRIPT_NAME main
 
 -h オプションでヘルプを表示します。
-    $ acd.sh -h
+    $ $SCRIPT_NAME -h
 msg_help
 
         exit 0
