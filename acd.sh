@@ -83,6 +83,7 @@ function print_result_summary() {
 function print_archived_files() {
     local diff_files
     diff_files=( "$@" )
+
     echo
     echo " Archived files"
     echo "----------------"
@@ -90,10 +91,6 @@ function print_archived_files() {
     for file in "${diff_files[@]}" ; do
         echo "./$file"
     done
-
-    # NOTE:
-    # スペースを含むファイルが存在する場合、区切り文字として扱われるため分割して出力されてしまう。
-    # 対処するには複雑な構文となるようなのでいったん対応無し。
 }
 
 
@@ -117,25 +114,53 @@ function validate_inside_repo_root() {
     return
 }
 
-# git コマンドを実行する関数
-function do_git_diff_and_git_archive() {
+# 差分ファイルが存在するか検証する関数
+function validate_diff_files_exists() {
+    local diff_files
+    diff_files=( "$@" )
+
+    # 差分が存在しなかった場合は正常終了する
+    if [[ "${#diff_files[@]}" = 0 ]]; then
+        echo "指定されたコミット間に差分が存在しませんでした。"
+        exit 0
+    fi
+}
+
+# 差分のアーカイブ処理を実行する関数
+function do_archive() {
     local from_commit to_commit
     from_commit=$1
     to_commit="${2:-"HEAD"}" # $2 が未定義の場合は "HEAD" を代入
 
     # git diff コマンドの標準出力を配列化
-    # パスに含まれるスペースを \ でエスケープしておく
-    if ! diff_files=( $(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR | sed -e "s/ /\\\\ /g") ); then
+    # mapfile コマンドを使用して標準出力を明示的に分割し配列化する。
+    #
+    # https://www.shellcheck.net/wiki/SC2207
+    # > # For bash 4.4+, must not be in posix mode, may use temporary files
+    # > mapfile -t array < <(mycommand)
+    #
+    # スペースをパスに含む差分ファイルが存在した場合、別の要素として変数へ代入され
+    # git archive コマンドで変数を展開する際にファイルパルが存在せずエラー終了してしまうため。
+    local diff_files
+    mapfile -t diff_files < <(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR)
+
+    # git diff が実行できていたか検証
+    # git diff コマンド単体でも送信してエラー処理を行う。
+    # mapfile でコマンドの標準出力を配列に渡す方法はエラーを検知できないため。
+    #
+    # https://www.shellcheck.net/wiki/SC2207
+    # > Another exception is the wish for error handling:  array=( $(mycommand) ) || die-with-error works the way
+    # > it looks while a similar mapfile construct like mapfile -t array < <(mycommand) doesn't fail
+    # > and you will have to write more code for error handling.
+    if ! git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR &>/dev/null; then
         # エラーが発生した場合はコマンドエラーを出力して異常終了
         print_command_error_to_exit "git diff"
     fi
 
-    # 差分が存在しなかった場合は正常終了
-    # ここで処理を止めなかった場合 git archive コマンドが実行され空のファイルが生成されてしまう
-    if [[ "${#diff_files[@]}" == 0 ]]; then
-        echo "指定されたコミット間に差分が存在しませんでした。"
-        exit 0
-    fi
+    # 差分が存在するか検証
+    # git archive コマンドは引数が存在せずエラーとなっても空のファイルを生成してしまうため、
+    # 差分ファイルが存在しない場合は事前に処理を止める。
+    validate_diff_files_exists "${diff_files[@]}"
 
     # ファイル名を定義
     local repo_name datetime archive_path
@@ -144,21 +169,10 @@ function do_git_diff_and_git_archive() {
     archive_path="$repo_name-$datetime.zip"
 
     # git archive コマンドを実行
-    if ! echo "${diff_files[@]}" | xargs git archive --format=zip --prefix="$repo_name"/ "$to_commit" -o "$archive_path"; then
+    if ! git archive --format=zip --prefix="$repo_name"/ "$to_commit" "${diff_files[@]}" -o "$archive_path"; then
         # エラーが発生した場合はコマンドエラーを出力して異常終了
         print_command_error_to_exit "git archive"
     fi
-
-    # NOTE:
-    # git diff ～ git archive の処理は https://va2577.github.io/post/61/ の「結果」に記載されているコマンドを参考に作成。
-    # スペースをパスに含むファイルが差分に存在しても、1 つのファイルとして扱い正しく処理を行うことができる。
-    #
-    # さらにこのコマンドを以下の 2 段階の処理に分割し、エラーハンドリングを行っている。
-    # 1. git diff の実行・配列化
-    # 2. git archive の実行
-    #
-    # ワンライナーのままでは、Git の歴史に存在しないコミットを渡された場合に git diff の処理に失敗するものの
-    # 続けて git archive が実行されてしまい、空の ZIP ファイルが生成されてしまうため。
 
     # 結果を表示する
     print_result_summary "$from_commit" "$to_commit" "$archive_path"
@@ -176,11 +190,11 @@ function main() {
     # カレントディレクトリが Git リポジトリのルートか検証
     validate_inside_repo_root
 
-    # 引数の個数を検証
+    # 渡された引数の個数を検証
     validate_parameters_count "$@"
 
-    # git コマンドを実行
-    do_git_diff_and_git_archive "$@"
+    # アーカイブ処理を実行
+    do_archive "$@"
 }
 
 # メイン処理を実行
