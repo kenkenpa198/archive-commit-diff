@@ -82,7 +82,9 @@ function print_error_to_exit() {
     local message=$1
 
     echo "[ERROR] ${message}"
+    echo
     echo "使い方を確認するにはオプション '-h' を付与して実行してください。"
+    echo "    $ $SCRIPT_NAME -h"
     exit 1
 }
 
@@ -93,7 +95,9 @@ function print_command_error_to_exit() {
     echo
     echo "[ERROR] ${command} コマンドの実行中にエラーが発生しました。"
     echo "出力されているエラーメッセージを確認してください。"
+    echo
     echo "使い方を確認するにはオプション '-h' を付与して実行してください。"
+    echo "    $ $SCRIPT_NAME -h"
     exit 1
 }
 
