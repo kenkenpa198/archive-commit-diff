@@ -25,7 +25,7 @@ $ acd -h                        # ヘルプを表示する
 $ cd your/bin/dir
 
 # スクリプトをダウンロード
-$ curl https://raw.githubusercontent.com/kenkenpa198/archive-commit-diff/main/acd > acd
+$ curl https://raw.githubusercontent.com/kenkenpa198/archive-commit-diff/main/acd.sh > acd
 
 # ファイルへ実行権限を付与
 $ chmod +x acd
