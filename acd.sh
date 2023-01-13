@@ -4,17 +4,41 @@ set -euo pipefail
 # 指定した Git コミット間の差分ファイルを ZIP 形式で出力するシェルスクリプトコマンド
 
 ###################################
+# 作成メモ
+###################################
+# - メイン関数 main() を定義して実行する。グローバルスコープの汚染を防ぐため。
+# - 関数内での変数宣言はローカル変数（snake_case）を宣言し関数スコープ内で扱う。
+# - スクリプト内で共通で使用する変数は書き込み禁止のグローバル定数（UPPER_CASE）として定義する。
+# - 渡された引数はグローバル定数やローカル変数へ代入して使用する。引数を命名してコードの可読性を上げるため。
+
+
+###################################
+# グローバル定数を定義
+###################################
+# 渡された引数を命名
+FROM_COMMIT="${1:-""}"   # $1 が未定義（引数なし）の場合は空文字を代入
+TO_COMMIT="${2:-"HEAD"}" # $2 が未定義の場合は "HEAD" を代入
+
+# リポジトリ名と出力ファイルパスを定義
+REPOSITORY_NAME="$(basename "$PWD")"
+ARCHIVE_PATH="./$REPOSITORY_NAME-$(date '+%Y%m%d-%H%M%S').zip"
+
+# 書き込みを禁止して定数化
+readonly FROM_COMMIT TO_COMMIT REPOSITORY_NAME ARCHIVE_PATH
+
+
+###################################
 # 関数定義 : メッセージを表示
 ###################################
 # ヘルプを表示して正常終了する関数
 print_help_to_exit() {
-    # 引数なし または第1引数に -h を付与して実行されたらヘルプを表示
-    if [[ $# = 0 ]] || [[ $1 = "-h" ]]; then
+    # 引数なし または第 1 引数が -h, --help で実行されていたらヘルプを表示
+    if [[ $# = 0 ]] || [[ $FROM_COMMIT = "-h" ]] || [[ $FROM_COMMIT = "--help" ]]; then
 
         cat \
 << msg_help
 ------------------------------------------------------------------
-                    archive-commit-diff v0.1.0
+                    archive-commit-diff v0.2.0
 ------------------------------------------------------------------
 指定した Git コミット間の差分ファイルを ZIP 形式で出力します。
 
@@ -26,13 +50,15 @@ print_help_to_exit() {
 
  Example
 ---------
-コミットの識別子には コミット ID, ブランチ名, HEAD, タグ が使用できます。
+コミット識別子を <from_commit> <to_commit> へ指定して実行します。
     $ acd.sh 322d4b4 a11729d
+
+コミット識別子には ブランチ名 HEAD タグ も使用できます。
     $ acd.sh main your-branch
     $ acd.sh HEAD~~ HEAD
     $ acd.sh v1.0.0 v1.1.0
 
-<to_commit> は省略可能です。この場合は <from_commit> と HEAD の差分を出力します。
+<to_commit> を省略した場合は <from_commit> と HEAD の差分を出力します。
     $ acd.sh main
 
 -h オプションでヘルプを表示します。
@@ -41,6 +67,13 @@ msg_help
 
         exit 0
     fi
+}
+
+# メッセージを表示する関数
+function print_info() {
+    local message=$1
+
+    echo "[INFO] ${message}"
 }
 
 # エラーメッセージを表示して異常終了する関数
@@ -58,38 +91,33 @@ function print_command_error_to_exit() {
 
     echo
     echo "[ERROR] ${command} コマンドの実行中にエラーが発生しました。"
-    echo "出力されているエラー内容を確認してください。"
+    echo "出力されているエラーメッセージを確認してください。"
     echo "使い方を確認するにはオプション '-h' を付与して実行してください。"
     exit 1
 }
 
 # 出力結果（概要）を表示する関数
 function print_result_summary() {
-    local from_commit to_commit archived_filename
-    from_commit=$1
-    to_commit=$2
-    archived_filename=$3
-    echo "アーカイブを出力しました。"
+    print_info "アーカイブを出力しました。"
     echo
     echo " Summary"
     echo "---------"
-    echo "from commit : ${from_commit}"
-    echo "to commit   : ${to_commit}"
-    echo "Archived to : ./${archived_filename}"
+    echo "from commit : $FROM_COMMIT"
+    echo "to commit   : $TO_COMMIT"
+    echo "archived to : $ARCHIVE_PATH"
 }
 
 # 出力結果（アーカイブされたファイル）を表示する関数
-# $@ : 表示するファイルパスの配列
 function print_archived_files() {
     local diff_files
     diff_files=( "$@" )
 
     echo
-    echo " Archived files"
+    echo " Archived Files"
     echo "----------------"
 
     for file in "${diff_files[@]}" ; do
-        echo "./$file"
+        echo "$REPOSITORY_NAME/$file"
     done
 }
 
@@ -114,6 +142,14 @@ function validate_inside_repo_root() {
     return
 }
 
+# git diff コマンドを実行する関数
+function do_git_diff() {
+    # エラーが発生した場合はコマンドエラーを出力して異常終了
+    if ! git diff --name-only "$FROM_COMMIT" "$TO_COMMIT" --diff-filter=ACMR; then
+        print_command_error_to_exit "git diff"
+    fi
+}
+
 # 差分ファイルが存在するか検証する関数
 function validate_diff_files_exists() {
     local diff_files
@@ -121,62 +157,20 @@ function validate_diff_files_exists() {
 
     # 差分が存在しなかった場合は正常終了する
     if [[ "${#diff_files[@]}" = 0 ]]; then
-        echo "指定されたコミット間に差分が存在しませんでした。"
+        print_info "指定されたコミット間に差分が存在しませんでした。"
         exit 0
     fi
 }
 
-# 差分のアーカイブ処理を実行する関数
-function do_archive() {
-    local from_commit to_commit
-    from_commit=$1
-    to_commit="${2:-"HEAD"}" # $2 が未定義の場合は "HEAD" を代入
-
-    # git diff コマンドの標準出力を配列化
-    # mapfile コマンドを使用して標準出力を明示的に分割し配列化する。
-    #
-    # https://www.shellcheck.net/wiki/SC2207
-    # > # For bash 4.4+, must not be in posix mode, may use temporary files
-    # > mapfile -t array < <(mycommand)
-    #
-    # スペースをパスに含む差分ファイルが存在した場合、別の要素として変数へ代入され
-    # git archive コマンドで変数を展開する際にファイルパルが存在せずエラー終了してしまうため。
+# git archive コマンドを実行する関数
+function do_git_archive() {
     local diff_files
-    mapfile -t diff_files < <(git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR)
+    diff_files=( "$@" )
 
-    # git diff が実行できていたか検証
-    # git diff コマンド単体でも送信してエラー処理を行う。
-    # mapfile でコマンドの標準出力を配列に渡す方法はエラーを検知できないため。
-    #
-    # https://www.shellcheck.net/wiki/SC2207
-    # > Another exception is the wish for error handling:  array=( $(mycommand) ) || die-with-error works the way
-    # > it looks while a similar mapfile construct like mapfile -t array < <(mycommand) doesn't fail
-    # > and you will have to write more code for error handling.
-    if ! git diff --name-only "$from_commit" "$to_commit" --diff-filter=ACMR &>/dev/null; then
-        # エラーが発生した場合はコマンドエラーを出力して異常終了
-        print_command_error_to_exit "git diff"
-    fi
-
-    # 差分が存在するか検証
-    # git archive コマンドは引数が存在せずエラーとなっても空のファイルを生成してしまうため、
-    # 差分ファイルが存在しない場合は事前に処理を止める。
-    validate_diff_files_exists "${diff_files[@]}"
-
-    # ファイル名を定義
-    local repo_name datetime archive_path
-    repo_name="$(basename "$PWD")"
-    datetime="$(date '+%Y%m%d-%H%M%S')"
-    archive_path="$repo_name-$datetime.zip"
-
-    # git archive コマンドを実行
-    if ! git archive --format=zip --prefix="$repo_name"/ "$to_commit" "${diff_files[@]}" -o "$archive_path"; then
-        # エラーが発生した場合はコマンドエラーを出力して異常終了
+    # エラーが発生した場合はコマンドエラーを出力して異常終了
+    if ! git archive --format=zip --prefix="$REPOSITORY_NAME"/ "$TO_COMMIT" "${diff_files[@]}" -o "$ARCHIVE_PATH"; then
         print_command_error_to_exit "git archive"
     fi
-
-    # 結果を表示する
-    print_result_summary "$from_commit" "$to_commit" "$archive_path"
-    print_archived_files "${diff_files[@]}"
 }
 
 
@@ -193,8 +187,30 @@ function main() {
     # 渡された引数の個数を検証
     validate_parameters_count "$@"
 
-    # アーカイブ処理を実行
-    do_archive "$@"
+    # git diff コマンドの標準出力を配列化
+    # 配列の代入には bash の mapfile コマンドを使用する。
+    #
+    # https://www.shellcheck.net/wiki/SC2207
+    # > # For bash 4.4+, must not be in posix mode, may use temporary files
+    # > mapfile -t array < <(mycommand)
+    #
+    # diff_files=( $(do_git_diff) ) でも配列の保存は可能。
+    # しかしスペースをパスに含む差分ファイルが存在した場合、別の要素として変数へ代入されて
+    # git archive コマンドで変数を展開する際に要素に対応するファイルパスが存在せずエラー終了してしまうため。
+    local diff_files
+    mapfile -t diff_files < <(do_git_diff)
+
+    # 差分ファイルが存在するか検証
+    # git archive コマンドは引数のファイルパスが存在せずエラーとなっても
+    # 空のファイルを生成してしまうため、差分ファイルが存在しない場合は事前に処理を止める。
+    validate_diff_files_exists "${diff_files[@]}"
+
+    # git archive コマンドを実行
+    do_git_archive "${diff_files[@]}"
+
+    # 結果を表示する
+    print_result_summary
+    print_archived_files "${diff_files[@]}"
 }
 
 # メイン処理を実行
