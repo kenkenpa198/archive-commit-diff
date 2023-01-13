@@ -149,8 +149,13 @@ function validate_inside_repo_root() {
 
 # git diff コマンドを実行する関数
 function do_git_diff() {
+    git diff --name-only "$FROM_COMMIT" "$TO_COMMIT" --diff-filter=ACMR
+}
+
+# git diff コマンドの実行を検証する関数
+function validate_do_git_diff() {
     # エラーが発生した場合はコマンドエラーを出力して異常終了
-    if ! git diff --name-only "$FROM_COMMIT" "$TO_COMMIT" --diff-filter=ACMR; then
+    if ! git diff --name-only "$FROM_COMMIT" "$TO_COMMIT" --diff-filter=ACMR &>/dev/null; then
         print_command_error_to_exit "git diff"
     fi
 }
@@ -204,6 +209,16 @@ function main() {
     # git archive コマンドで変数を展開する際に要素に対応するファイルパスが存在せずエラー終了してしまうため。
     local diff_files
     mapfile -t diff_files < <(do_git_diff)
+
+    # git diff が実行できていたか検証
+    # git diff コマンド単体をもう一度送信してエラー処理を行う。
+    # mapfile でコマンドの標準出力を配列に渡す方法ではコマンド本体に対してエラー処理が行えないため。
+    #
+    # https://www.shellcheck.net/wiki/SC2207
+    # > Another exception is the wish for error handling:  array=( $(mycommand) ) || die-with-error works the way
+    # > it looks while a similar mapfile construct like mapfile -t array < <(mycommand) doesn't fail
+    # > and you will have to write more code for error handling.
+    validate_do_git_diff
 
     # 差分ファイルが存在するか検証
     # git archive コマンドは引数のファイルパスが存在せずエラーとなっても
