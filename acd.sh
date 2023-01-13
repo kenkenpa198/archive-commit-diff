@@ -204,9 +204,9 @@ function main() {
     # > # For bash 4.4+, must not be in posix mode, may use temporary files
     # > mapfile -t array < <(mycommand)
     #
-    # diff_files=( $(do_git_diff) ) でも配列の保存は可能。
-    # しかしスペースをパスに含む差分ファイルが存在した場合、別の要素として変数へ代入されて
-    # git archive コマンドで変数を展開する際に要素に対応するファイルパスが存在せずエラー終了してしまうため。
+    # diff_files=( $(do_git_diff) ) でも配列の保存は可能だが、
+    # スペースをパスに含む差分ファイルが存在した場合、別の要素として変数へ代入される。
+    # この状態の変数を git archive コマンド内で展開すると、要素に対応するファイルパスが存在せずエラー終了してしまう。
     local diff_files
     mapfile -t diff_files < <(do_git_diff)
 
