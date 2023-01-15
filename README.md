@@ -20,20 +20,25 @@ $ acd -h                        # ヘルプを表示する
 
 ## 2. 環境構築
 
+1. [最新のリリース](https://github.com/kenkenpa198/archive-commit-diff/releases/latest) > `Assets` > `Source code (zip)` から最新版のソースコードをダウンロードする。
+2. ZIP ファイルを解凍後、ファイル `acd.sh` を好みのディレクトリへ配置する。
+3. 以下を順番に実行する。
+
 ```shell
-# スクリプトを配置するディレクトリへ移動
+    # スクリプトを配置したディレクトリへ移動
 $ cd your/bin/dir
 
-# スクリプトをダウンロード
-$ curl https://raw.githubusercontent.com/kenkenpa198/archive-commit-diff/main/acd.sh > acd
+    # 好みのコマンド名称へリネーム
+    $ mv acd.sh acd
+    $ ls -la
+    -rw-r--r--  1 username username 8602 Jan 15 12:56 acd
 
 # ファイルへ実行権限を付与
 $ chmod +x acd
 
 # 実行権限が付与されたことを確認
 $ ls -la
-...
--rwxr-xr-x  1 username username 6542 Jan 12 19:11 acd
+    -rwxr-xr-x  1 username username 8602 Jan 15 13:00 acd
 
 # コマンドが実行できるか確認
 $ acd -h
