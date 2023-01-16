@@ -39,7 +39,7 @@ print_help_to_exit() {
         cat \
 << msg_help
 ------------------------------------------------------------------
-                    archive-commit-diff v0.2.0
+                    archive-commit-diff v0.2.2
 ------------------------------------------------------------------
 指定した Git コミット間の差分ファイルを ZIP 形式で出力します。
 
@@ -148,6 +148,7 @@ function validate_inside_repo_root() {
 }
 
 # git diff コマンドを実行する関数
+# 実行結果は標準出力で呼び出し元へ渡す
 function do_git_diff() {
     git diff --name-only "$FROM_COMMIT" "$TO_COMMIT" --diff-filter=ACMR
 }
@@ -197,7 +198,7 @@ function main() {
     # 渡された引数の個数を検証
     validate_parameters_count "$@"
 
-    # git diff コマンドの標準出力を配列化
+    # git diff コマンドを実行して標準出力を配列化
     # 配列の代入には bash の mapfile コマンドを使用する。
     #
     # https://www.shellcheck.net/wiki/SC2207
