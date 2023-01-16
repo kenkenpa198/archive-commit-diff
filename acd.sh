@@ -122,7 +122,7 @@ function print_archived_files() {
     echo "----------------"
 
     for file in "${diff_files[@]}" ; do
-        echo "$REPOSITORY_NAME/$file"
+        echo "$file"
     done
 }
 
