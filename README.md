@@ -9,6 +9,13 @@ $ acd <from_commit>             # <from_commit> と HEAD の差分を出力す�
 $ acd -h                        # ヘルプを表示する
 ```
 
+---
+
+（2023-01-19 追記）リポジトリをアーカイブ化しました。  
+最新のソースコードは [kenkenpa198/dotfiles/.bin/acd](https://github.com/kenkenpa198/dotfiles/blob/main/.bin/acd) をご確認ください。
+
+---
+
 ## 1. 概要
 
 - いろいろなサイトで紹介されている以下のワンライナースニペットを拡張したスクリプトです。
